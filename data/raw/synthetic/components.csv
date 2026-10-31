@@ -1,0 +1,61 @@
+id,name,category,unit_cost_usd,lead_time_days,is_sole_sourced
+CMP-0001,CPU SoC Gen4 (v1),Compute,90.24,20,True
+CMP-0002,AI Neural Accelerator (v2),Compute,203.01,42,False
+CMP-0003,RISC-V Microcontroller (v3),Compute,284.37,24,False
+CMP-0004,DSP Core (v4),Compute,147.12,43,False
+CMP-0005,Power Management IC (v5),Compute,272.05,14,False
+CMP-0006,Clock Generator (v6),Compute,105.83,40,False
+CMP-0007,CPU SoC Gen4 (v7),Compute,200.1,41,False
+CMP-0008,AI Neural Accelerator (v8),Compute,30.71,24,False
+CMP-0009,RISC-V Microcontroller (v9),Compute,56.9,29,False
+CMP-0010,DSP Core (v10),Compute,165.79,23,True
+CMP-0011,DDR5 DRAM 16GB (v11),Memory,100.74,28,False
+CMP-0012,LPDDR5X Module (v12),Memory,277.46,50,False
+CMP-0013,NVMe NAND 512GB (v13),Memory,71.24,26,False
+CMP-0014,EEPROM Configuration Chip (v14),Memory,54.27,30,False
+CMP-0015,SRAM Cache Die (v15),Memory,23.22,60,True
+CMP-0016,NOR Flash Module (v16),Memory,288.92,61,True
+CMP-0017,DDR5 DRAM 16GB (v17),Memory,165.37,29,True
+CMP-0018,LPDDR5X Module (v18),Memory,97.11,38,False
+CMP-0019,NVMe NAND 512GB (v19),Memory,210.32,39,True
+CMP-0020,EEPROM Configuration Chip (v20),Memory,82.05,86,False
+CMP-0021,OLED Retina Panel (v21),Display & Optical,206.53,61,False
+CMP-0022,AMOLED Flex Display (v22),Display & Optical,267.68,23,False
+CMP-0023,Mini-LED Backlight Unit (v23),Display & Optical,156.17,28,False
+CMP-0024,Touch Controller IC (v24),Display & Optical,339.25,35,False
+CMP-0025,Front Camera Sensor 12MP (v25),Display & Optical,114.07,26,False
+CMP-0026,LiDAR Sensor Module (v26),Display & Optical,145.55,36,False
+CMP-0027,OLED Retina Panel (v27),Display & Optical,141.66,25,False
+CMP-0028,AMOLED Flex Display (v28),Display & Optical,42.78,58,False
+CMP-0029,Mini-LED Backlight Unit (v29),Display & Optical,21.34,37,False
+CMP-0030,Touch Controller IC (v30),Display & Optical,175.73,35,True
+CMP-0031,Wi-Fi 7 / BT 5.4 Combo IC (v31),Connectivity,95.3,25,False
+CMP-0032,5G Sub-6GHz Modem (v32),Connectivity,308.59,36,True
+CMP-0033,RF Transceiver Front-End (v33),Connectivity,221.43,74,False
+CMP-0034,GNSS Location Chip (v34),Connectivity,110.49,20,False
+CMP-0035,NFC Secure Element (v35),Connectivity,80.58,47,False
+CMP-0036,Ethernet PHY Controller (v36),Connectivity,331.6,41,False
+CMP-0037,Wi-Fi 7 / BT 5.4 Combo IC (v37),Connectivity,326.6,22,False
+CMP-0038,5G Sub-6GHz Modem (v38),Connectivity,146.88,35,True
+CMP-0039,RF Transceiver Front-End (v39),Connectivity,161.23,27,False
+CMP-0040,GNSS Location Chip (v40),Connectivity,210.78,44,False
+CMP-0041,Lithium-Cobalt Battery 5000mAh (v41),Power & Battery,26.76,21,True
+CMP-0042,GaN Fast Charger Controller (v42),Power & Battery,95.34,63,False
+CMP-0043,Battery Management ASIC (v43),Power & Battery,231.83,57,True
+CMP-0044,DC-DC Buck Converter (v44),Power & Battery,170.81,22,True
+CMP-0045,Wireless Charging Coil (v45),Power & Battery,133.58,20,False
+CMP-0046,Current Sensor (v46),Power & Battery,145.24,28,False
+CMP-0047,Lithium-Cobalt Battery 5000mAh (v47),Power & Battery,319.92,65,False
+CMP-0048,GaN Fast Charger Controller (v48),Power & Battery,55.36,59,False
+CMP-0049,Battery Management ASIC (v49),Power & Battery,37.38,47,False
+CMP-0050,DC-DC Buck Converter (v50),Power & Battery,219.08,33,False
+CMP-0051,CNC Aluminum Chassis (v51),Chassis & Passive,116.68,47,True
+CMP-0052,Titanium Frame Structural Bezel (v52),Chassis & Passive,334.06,79,True
+CMP-0053,Vapor Chamber Heat Sink (v53),Chassis & Passive,172.06,39,False
+CMP-0054,Multilayer Ceramic Capacitor Set (v54),Chassis & Passive,84.08,43,True
+CMP-0055,Graphene Thermal Pad (v55),Chassis & Passive,81.55,66,False
+CMP-0056,Shielding Cans (v56),Chassis & Passive,37.43,26,False
+CMP-0057,CNC Aluminum Chassis (v57),Chassis & Passive,12.56,32,False
+CMP-0058,Titanium Frame Structural Bezel (v58),Chassis & Passive,127.07,34,False
+CMP-0059,Vapor Chamber Heat Sink (v59),Chassis & Passive,145.69,42,False
+CMP-0060,Multilayer Ceramic Capacitor Set (v60),Chassis & Passive,63.34,41,False

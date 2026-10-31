@@ -1,0 +1,10 @@
+id,name,sku,family,revenue_usd_annual,margin_pct
+PRD-001,UltraBook Pro 14,LAP-UB14-01,Laptop,85000000.0,32.5
+PRD-002,TitanBook Creator 16,LAP-TB16-02,Laptop,62000000.0,35.0
+PRD-003,AirLite Student 13,LAP-AL13-03,Laptop,45000000.0,24.0
+PRD-004,TabSight Air 11,TAB-AIR11-01,Tablet,52000000.0,38.0
+PRD-005,TabSight Pro Max 13,TAB-PRO13-02,Tablet,71000000.0,41.5
+PRD-006,TabSight Lite 8,TAB-LT08-03,Tablet,28000000.0,26.0
+PRD-007,HyperRack Edge Server E1,SRV-EDGE-01,Server,115000000.0,45.0
+PRD-008,CloudCore AI Node G8,SRV-AINODE-02,Server,240000000.0,48.5
+PRD-009,StorageVault SAN 4U,SRV-SAN4U-03,Server,92000000.0,42.0

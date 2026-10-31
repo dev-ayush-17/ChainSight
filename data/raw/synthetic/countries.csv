@@ -1,0 +1,21 @@
+code,name,region,risk_index
+CN,China,East Asia,0.68
+TW,Taiwan,East Asia,0.64
+VN,Vietnam,Southeast Asia,0.62
+IN,India,South Asia,0.61
+MY,Malaysia,Southeast Asia,0.63
+PH,Philippines,Southeast Asia,0.65
+ID,Indonesia,Southeast Asia,0.61
+MX,Mexico,North America,0.62
+KR,South Korea,East Asia,0.35
+JP,Japan,East Asia,0.22
+SG,Singapore,Southeast Asia,0.15
+US,United States,North America,0.25
+DE,Germany,Western Europe,0.2
+NL,Netherlands,Western Europe,0.18
+BE,Belgium,Western Europe,0.21
+GB,United Kingdom,Western Europe,0.24
+FR,France,Western Europe,0.22
+TH,Thailand,Southeast Asia,0.48
+IE,Ireland,Western Europe,0.19
+IL,Israel,Middle East,0.58

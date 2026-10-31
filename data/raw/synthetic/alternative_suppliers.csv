@@ -1,0 +1,26 @@
+supplier_id,alternative_supplier_id,component_id,qualification_status
+SUP-002,SUP-037,CMP-0001,Audit Pending
+SUP-024,SUP-005,CMP-0002,Audit Pending
+SUP-024,SUP-003,CMP-0002,Audit Pending
+SUP-024,SUP-040,CMP-0002,Backup Qualified
+SUP-007,SUP-005,CMP-0003,Qualified
+SUP-007,SUP-035,CMP-0003,Audit Pending
+SUP-027,SUP-006,CMP-0004,Qualified
+SUP-027,SUP-009,CMP-0004,Backup Qualified
+SUP-015,SUP-003,CMP-0005,Preferred Alternative
+SUP-028,SUP-026,CMP-0006,Audit Pending
+SUP-028,SUP-018,CMP-0006,Backup Qualified
+SUP-028,SUP-032,CMP-0006,Qualified
+SUP-009,SUP-018,CMP-0007,Audit Pending
+SUP-022,SUP-024,CMP-0008,Qualified
+SUP-022,SUP-009,CMP-0008,Preferred Alternative
+SUP-022,SUP-034,CMP-0008,Audit Pending
+SUP-022,SUP-037,CMP-0008,Audit Pending
+SUP-016,SUP-001,CMP-0009,Qualified
+SUP-009,SUP-031,CMP-0010,Audit Pending
+SUP-021,SUP-027,CMP-0011,Backup Qualified
+SUP-021,SUP-031,CMP-0011,Backup Qualified
+SUP-004,SUP-005,CMP-0012,Preferred Alternative
+SUP-004,SUP-002,CMP-0012,Backup Qualified
+SUP-004,SUP-008,CMP-0013,Preferred Alternative
+SUP-015,SUP-012,CMP-0014,Qualified

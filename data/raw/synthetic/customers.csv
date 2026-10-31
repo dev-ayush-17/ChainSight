@@ -1,0 +1,16 @@
+id,name,country_code,annual_revenue_usd,segment
+CUST-001,"Jones, Stanley and Mejia Group",JP,10908952.02,Defense & Aerospace
+CUST-002,Wyatt Inc Group,FR,56115096.19,Healthcare Systems
+CUST-003,Ramirez-Reid Group,FR,41546865.01,Defense & Aerospace
+CUST-004,Martin-Kelly Group,GB,84949885.24,Healthcare Systems
+CUST-005,"Adams, Zuniga and Wong Group",DE,23976456.15,Global Retail
+CUST-006,"Reid, Ferguson and Sanchez Group",KR,50984954.41,Telecom Infrastructure
+CUST-007,Gray-Mayo Group,FR,6755167.83,Telecom Infrastructure
+CUST-008,"Watts, Robinson and Nguyen Group",NL,26958430.41,Global Retail
+CUST-009,Perez Inc Group,US,77849356.3,Telecom Infrastructure
+CUST-010,Morales-Jones Group,SG,71627111.97,Defense & Aerospace
+CUST-011,"Walter, Edwards and Rios Group",GB,53565199.85,Defense & Aerospace
+CUST-012,Wilkerson-Day Group,GB,55929430.24,Global Retail
+CUST-013,Baker and Sons Group,FR,59221156.69,Telecom Infrastructure
+CUST-014,"Hoffman, Baker and Richards Group",JP,55259848.29,Telecom Infrastructure
+CUST-015,"Ross, Robinson and Bright Group",US,29714630.72,Healthcare Systems
