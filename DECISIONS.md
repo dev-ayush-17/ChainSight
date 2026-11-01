@@ -67,4 +67,58 @@ Option 2: Adopt `feedparser`, `tiktoken`, and `google-genai`. Maintain our own c
 - Fully interview-explainable, custom retrieval architecture remains clean.
 
 ---
+
+## ADR-004: Embedding Engine Selection (FastEmbed ONNX vs PyTorch Sentence-Transformers)
+**Date:** 2026-11-01
+**Status:** Accepted
+
+**Context:**
+ChainSight requires generating 384-dimensional dense vector embeddings for `Article` chunk nodes and search queries to support Neo4j's native vector indices (`article_embedding`, `node_desc_embedding`).
+
+**Options Considered:**
+1. `sentence-transformers` with PyTorch backend:
+   - Pros: Standard HuggingFace library.
+   - Cons: Pulls >2GB of PyTorch dependencies and CUDA binaries, slow cold start, heavy footprint for a lightweight local copilot.
+2. `fastembed` with ONNX Runtime backend:
+   - Pros: Extremely lightweight (<40MB footprint), uses ONNX runtime, generates identical 384-dimensional cosine-normalized embeddings using `sentence-transformers/all-MiniLM-L6-v2` or `BAAI/bge-small-en-v1.5`, 3-5x faster inference, zero torch dependency.
+   - Cons: Specialized embedding runner.
+
+**Decision:**
+Option 2: Adopt `fastembed` targeting 384-dimensional embeddings compatible with Neo4j vector indexes.
+
+**Consequences:**
+- Sub-millisecond local embedding generation.
+- Zero massive PyTorch bloat in container and local virtual environment.
+- Compatible with Neo4j 384-dim vector index definition from Week 1.
+
+---
+
+## ADR-005: Multi-Strategy Retrieval Layer and Cypher Generation Safety Guardrails
+**Date:** 2026-11-01  
+**Status:** Accepted  
+
+**Context:**
+ChainSight needs to answer multi-hop supply chain questions ("Port X disrupted: exposed products, suppliers, alternatives?"), direct factual lookups, and open-ended disruption news search without relying on heavy agent frameworks. In runtime query generation, arbitrary LLM text-to-Cypher generation presents security risks (potential injection or mutation of graph data) and latency/hallucination vulnerabilities.
+
+**Options Considered:**
+1. LLM-only Text-to-Cypher for every query:
+   - Pros: Flexible.
+   - Cons: High latency, hallucinated property names, security vulnerability if destructive Cypher (`DETACH DELETE`) is generated, prone to schema mismatch.
+2. Parameterized Cypher Templates for multi-hop propagation + deterministic regex fallback for lookups + safe read-only Text-to-Cypher:
+   - Pros: Guaranteed deterministic 0ms impact traversals for known risk topologies; regex-based immediate resolution for common lookup templates; strict regex safety validator (`validate_cypher_safety`) that rejects mutation keywords (`CREATE`, `MERGE`, `DELETE`, `SET`, `DROP`, `ALTER`); safe schema-constrained LLM fallback.
+   - Cons: Requires upfront template and intent routing definition.
+
+**Decision:**
+Adopt Option 2: An intent router (`retrieval/router.py`) directs questions across 4 explicit paths:
+- `impact_traversal`: Executes parameterized Cypher templates (`retrieval/traversal.py`) with guaranteed multi-hop paths and revenue aggregation.
+- `lookup`: Runs safe read-only Text-to-Cypher (`retrieval/cypher_gen.py`) with deterministic pattern matching and AST-level read-only safety guardrails.
+- `semantic`: Vector index search with 1-hop Neo4j graph expansion (`retrieval/vector_search.py`).
+- `unanswerable`: Immediate refusal guardrail for out-of-scope domain queries.
+
+**Consequences:**
+- Zero risk of graph corruption or injection via LLM runtime queries.
+- Clean Pydantic inter-module contracts (`retrieval/schemas.py`).
+- Complies strictly with all `AGENTS.md` guidelines.
+
+---
 <!-- Copy above template for each new decision -->

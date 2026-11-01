@@ -27,6 +27,7 @@ dependencies = [
     "feedparser>=6.0.11",
     "google-genai>=1.0.0",
     "tiktoken>=0.7.0",
+    "fastembed>=0.3.0",
 ]
 
 [project.optional-dependencies]
@@ -56,6 +57,7 @@ ignore = []
 [tool.ruff.lint.per-file-ignores]
 "data/news_corpus.py" = ["E501"]
 "extraction/prompts.py" = ["E501"]
+"retrieval/prompts.py" = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"
