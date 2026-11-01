@@ -42,4 +42,29 @@ Option 3: Ingestion scripts (`ingestion/load_graph.py`) parse CSVs into strongly
 - Entire ingestion logic can be unit-tested without requiring a live Neo4j instance.
 
 ---
+
+## ADR-003: News Ingestion & LLM Extraction Dependencies
+**Date:** 2026-10-31
+**Status:** Accepted
+
+**Context:**
+Week 2 requires real disruption news ingestion (RSS/GDELT), token-based chunking, and schema-constrained LLM entity/relationship extraction. We must choose libraries without introducing heavy monolithic frameworks (e.g. LangChain, LlamaIndex).
+
+**Options Considered:**
+1. Custom raw XML parsing + custom token approximation + raw `requests` against LLM REST endpoints.
+   - Pros: Zero new third-party dependencies.
+   - Cons: Fragile RSS date/encoding parsing across BBC/Reuters; poor token boundary enforcement; reimplementing LLM retry and structured JSON schemas.
+2. Lightweight focused libraries: `feedparser` for RSS feeds, `tiktoken` for deterministic 400-token chunks with 50-token overlap, and `google-genai` (official Google SDK) with fallback to REST API.
+   - Pros: Minimal surface area, robust RFC-compliant RSS parsing, accurate token counting matching Gemini/OpenAI standard tokenizers, native Pydantic schema validation. Completely avoids LangChain/LlamaIndex abstractions.
+   - Cons: Three lightweight packages added to requirements.
+
+**Decision:**
+Option 2: Adopt `feedparser`, `tiktoken`, and `google-genai`. Maintain our own custom extraction pipeline, entity resolution, and prompt management in accordance with `AGENTS.md`.
+
+**Consequences:**
+- Deterministic chunking and sanitization.
+- Clean Pydantic-based structured outputs directly from Gemini 1.5 Flash.
+- Fully interview-explainable, custom retrieval architecture remains clean.
+
+---
 <!-- Copy above template for each new decision -->
