@@ -1,1 +1,1 @@
-"""API package for FastAPI service endpoints and dependencies."""
+"""ChainSight REST API package."""

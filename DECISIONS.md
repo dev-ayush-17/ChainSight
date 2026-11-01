@@ -121,4 +121,53 @@ Adopt Option 2: An intent router (`retrieval/router.py`) directs questions acros
 - Complies strictly with all `AGENTS.md` guidelines.
 
 ---
+
+## ADR-006: Grounded Generation Architecture, Token Budgeting, and Hallucination Guardrails
+**Date:** 2026-11-02  
+**Status:** Accepted  
+
+**Context:**
+ChainSight's FastAPI backend (`POST /chat`) must assemble heterogeneous retrieved data (graph traversal paths, factual Cypher rows, and article chunks) and synthesize a grounded, citation-backed response within strict token budgets (max 3,000 tokens) without hallucinating ungrounded entity IDs.
+
+**Options Considered:**
+1. Unconstrained full-text prompt concatenation without schema validation:
+   - Pros: Simple implementation.
+   - Cons: Prone to token blowout on long news articles, arbitrary LLM text formatting, hallucination of phantom supplier IDs.
+2. Structured Context Assembler + Pydantic Response Schema + Post-generation Hallucination Guardrail:
+   - Pros: Prioritizes verified graph facts over news text; enforces 3,000-token ceiling via `tiktoken`; validates structured JSON response (`answer`, `cited_sources`, `confidence`); regex post-verification prevents citing non-existent entity IDs (`SUP-xxx`, `PRD-xxx`); deterministic rule-based fallback guarantees zero-failure offline execution.
+   - Cons: Requires explicit schema validation.
+
+**Decision:**
+Adopt Option 2: Implement `retrieval/context_assembler.py` and `generation/generator.py` with structured JSON output, citation mapping, and post-generation entity validation.
+
+**Consequences:**
+- Deterministic response synthesis for testing and offline environments.
+- Strict token budgeting guarantees responses stay well within model context limits.
+- Full type safety through Pydantic models.
+
+---
+
+## ADR-007: UI Architecture and Interactive Vis-Network Subgraph Visualization
+**Date:** 2026-11-02  
+**Status:** Accepted  
+
+**Context:**
+The frontend must provide an interactive 2-column copilot dashboard (Chat pane on left, Subgraph visualization on right) that dynamically highlights reasoning subgraphs when answers arrive and allows node property inspection.
+
+**Options Considered:**
+1. Heavy external C++ binding graph libraries (`streamlit-agraph` / binary wheels):
+   - Pros: Native Streamlit component.
+   - Cons: High risk of wheel compilation failure across varied OS platforms (Windows, Linux slim containers), fragile dependency chain.
+2. Lightweight, self-contained `vis-network` HTML widget via `st.components.v1.html`:
+   - Pros: 100% portable, runs directly in browser iframe via CDN, physics simulation with smooth zoom/pan/drag, zero native compilation overhead, dynamic node color mapping matching PRD schema colors (`#4A90D9` Supplier, `#E67E22` Port, etc.).
+   - Cons: Requires custom HTML/JS template string.
+
+**Decision:**
+Adopt Option 2: Implement `ui/graph_renderer.py` utilizing `vis-network` rendered via Streamlit HTML components, with full node inspector and example queries sidebar.
+
+**Consequences:**
+- Seamless cross-platform execution in local virtualenvs and Docker containers (`ui.Dockerfile`).
+- Clean separation between API backend (`http://localhost:8000`) and UI frontend (`http://localhost:8501`).
+
+---
 <!-- Copy above template for each new decision -->
