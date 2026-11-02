@@ -1,12 +1,22 @@
 """Streamlit web application for ChainSight Graph RAG Supply Chain Risk Copilot."""
 
 import os
+import sys
+from pathlib import Path
 from typing import Any
 
 import httpx
 import streamlit as st
 
-from ui.graph_renderer import COLOR_PALETTE, generate_subgraph_html
+# Ensure project root is present in sys.path for top-level module resolution
+_ROOT_DIR = str(Path(__file__).resolve().parent.parent)
+if _ROOT_DIR not in sys.path:
+    sys.path.insert(0, _ROOT_DIR)
+
+try:
+    from ui.graph_renderer import COLOR_PALETTE, generate_subgraph_html
+except ImportError:
+    from graph_renderer import COLOR_PALETTE, generate_subgraph_html  # type: ignore[no-redef]
 
 API_BASE_URL: str = os.getenv("API_BASE_URL", "http://localhost:8000")
 
