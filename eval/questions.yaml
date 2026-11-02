@@ -1,0 +1,233 @@
+# ChainSight Evaluation Benchmark Dataset
+# 30 Ground Truth Evaluation Questions across 4 Categories:
+# - Lookup (8 questions): Single-entity factual retrieval
+# - Multi-hop (12 questions): 2-4 hop supply chain impact propagation
+# - Semantic (6 questions): Thematic article retrieval & disruption news
+# - Unanswerable (4 questions): Out-of-scope refusal verification
+
+questions:
+  # --- CATEGORY: LOOKUP (8 Questions) ---
+  - id: "L001"
+    category: "lookup"
+    question: "Which country is supplier SUP-007 located in?"
+    ground_truth_answer: "Supplier SUP-007 is located in Taiwan (TW)."
+    ground_truth_entities: ["SUP-007", "Taiwan"]
+    notes: "Direct lookup from Supplier.country_code"
+
+  - id: "L002"
+    category: "lookup"
+    question: "Who produces component CMP-0012?"
+    ground_truth_answer: "Component CMP-0012 is produced by qualified suppliers in the graph."
+    ground_truth_entities: ["CMP-0012"]
+    notes: "Direct lookup on (Supplier)-[:PRODUCES]->(Component)"
+
+  - id: "L003"
+    category: "lookup"
+    question: "What is the UN_LOCODE for Port of Rotterdam?"
+    ground_truth_answer: "The UN/LOCODE for Port of Rotterdam is NLRTM."
+    ground_truth_entities: ["Rotterdam", "NLRTM"]
+    notes: "Port reference data lookup"
+
+  - id: "L004"
+    category: "lookup"
+    question: "What is the annual revenue of product PRD-001?"
+    ground_truth_answer: "Product PRD-001 generates annual revenue documented in Product properties."
+    ground_truth_entities: ["PRD-001"]
+    notes: "Product revenue property lookup"
+
+  - id: "L005"
+    category: "lookup"
+    question: "What tier is supplier SUP-015?"
+    ground_truth_answer: "Supplier SUP-015 tier property."
+    ground_truth_entities: ["SUP-015"]
+    notes: "Supplier tier lookup"
+
+  - id: "L006"
+    category: "lookup"
+    question: "Show details for Port of Shanghai."
+    ground_truth_answer: "Port of Shanghai is located in China with UN_LOCODE CNSHA."
+    ground_truth_entities: ["Port of Shanghai", "CNSHA", "China"]
+    notes: "Port details lookup"
+
+  - id: "L007"
+    category: "lookup"
+    question: "Is component CMP-0005 sole-sourced?"
+    ground_truth_answer: "Component CMP-0005 has a boolean sole-sourced attribute in the knowledge graph."
+    ground_truth_entities: ["CMP-0005"]
+    notes: "Component sole-sourced attribute lookup"
+
+  - id: "L008"
+    category: "lookup"
+    question: "List components included in product PRD-003."
+    ground_truth_answer: "Product PRD-003 includes components linked via PART_OF bill-of-materials relationships."
+    ground_truth_entities: ["PRD-003"]
+    notes: "Bill of materials component lookup"
+
+  # --- CATEGORY: MULTI-HOP (12 Questions) ---
+  - id: "M001"
+    category: "multi_hop"
+    question: "Port of Shanghai is disrupted: which products are exposed and what is the revenue risk?"
+    ground_truth_answer: "Disruption at Port of Shanghai impacts suppliers shipping through Shanghai, exposing downstream products and annual revenue."
+    ground_truth_entities: ["Port of Shanghai", "Shanghai"]
+    expected_hop_count: 3
+    notes: "Port<-[:SHIPS_VIA]-Supplier-[:PRODUCES]->Component-[:PART_OF]->Product"
+
+  - id: "M002"
+    category: "multi_hop"
+    question: "A dockworkers strike shut down Port of Rotterdam, which suppliers are impacted?"
+    ground_truth_answer: "Suppliers shipping cargo via Port of Rotterdam are impacted by the dockworkers strike."
+    ground_truth_entities: ["Port of Rotterdam", "Rotterdam"]
+    expected_hop_count: 2
+    notes: "Supplier-[:SHIPS_VIA]->Port"
+
+  - id: "M003"
+    category: "multi_hop"
+    question: "Supplier SUP-005 had a factory shutdown: what products are affected?"
+    ground_truth_answer: "A shutdown at SUP-005 halts component production, directly affecting linked products."
+    ground_truth_entities: ["SUP-005"]
+    expected_hop_count: 3
+    notes: "Supplier->Component->Product"
+
+  - id: "M004"
+    category: "multi_hop"
+    question: "Find alternative suppliers for component CMP-0005 due to shortage."
+    ground_truth_answer: "Identifies alternative suppliers linked to CMP-0005 or alternative supplier relationships."
+    ground_truth_entities: ["CMP-0005"]
+    expected_hop_count: 2
+    notes: "Component<-[:PRODUCES]-Supplier or ALTERNATIVE_FOR"
+
+  - id: "M005"
+    category: "multi_hop"
+    question: "Analyze country concentration risk and total revenue at risk in Taiwan."
+    ground_truth_answer: "Suppliers located in Taiwan produce components that feed into products, creating cumulative revenue concentration risk."
+    ground_truth_entities: ["Taiwan", "TW"]
+    expected_hop_count: 3
+    notes: "Country<-[:LOCATED_IN]-Supplier->Component->Product"
+
+  - id: "M006"
+    category: "multi_hop"
+    question: "Typhoon disrupted Port of Ningbo, what is our downstream exposure?"
+    ground_truth_answer: "Disruptions at Ningbo impact suppliers using Ningbo terminals, exposing connected components and products."
+    ground_truth_entities: ["Ningbo"]
+    expected_hop_count: 3
+    notes: "Port traversal to suppliers and products"
+
+  - id: "M007"
+    category: "multi_hop"
+    question: "Which suppliers share a vulnerable port with supplier SUP-001?"
+    ground_truth_answer: "Suppliers that route shipments through the same port as SUP-001 share maritime exposure."
+    ground_truth_entities: ["SUP-001"]
+    expected_hop_count: 2
+    notes: "Supplier->Port<-Supplier"
+
+  - id: "M008"
+    category: "multi_hop"
+    question: "Port of Los Angeles has container terminal congestion: which facilities route shipments through LA?"
+    ground_truth_answer: "Facilities and suppliers shipping via Port of Los Angeles experience congestion delays."
+    ground_truth_entities: ["Los Angeles"]
+    expected_hop_count: 2
+    notes: "Facility/Supplier shipping via Port of LA"
+
+  - id: "M009"
+    category: "multi_hop"
+    question: "If supplier SUP-010 defaults, which sole-sourced components have no immediate alternative?"
+    ground_truth_answer: "SUP-010 produces sole-sourced components that lack alternative suppliers in the knowledge graph."
+    ground_truth_entities: ["SUP-010"]
+    expected_hop_count: 2
+    notes: "Supplier producing sole-sourced components"
+
+  - id: "M010"
+    category: "multi_hop"
+    question: "What is the revenue risk from high-risk countries in East Asia?"
+    ground_truth_answer: "Aggregates revenue across products dependent on suppliers located in high-risk countries."
+    ground_truth_entities: ["China", "Taiwan"]
+    expected_hop_count: 3
+    notes: "Country concentration risk aggregation"
+
+  - id: "M011"
+    category: "multi_hop"
+    question: "Which customers receive products exposed to Port of Singapore disruptions?"
+    ground_truth_answer: "Products routed through Singapore connect to end customer shipments."
+    ground_truth_entities: ["Singapore"]
+    expected_hop_count: 4
+    notes: "Port->Supplier->Component->Product->Customer"
+
+  - id: "M012"
+    category: "multi_hop"
+    question: "Identify Tier-1 suppliers affected by European port terminal closures."
+    ground_truth_answer: "Tier-1 suppliers using European ports like Rotterdam, Antwerp, or Hamburg."
+    ground_truth_entities: ["Rotterdam", "Antwerp"]
+    expected_hop_count: 2
+    notes: "Tier-1 supplier port linkage"
+
+  # --- CATEGORY: SEMANTIC (6 Questions) ---
+  - id: "S001"
+    category: "semantic"
+    question: "What recent shipping disruptions and container delays have occurred in Asia?"
+    ground_truth_answer: "Recent maritime reports document port congestion, typhoons, and container bottlenecks in major Asian hubs."
+    ground_truth_entities: ["Asia", "congestion", "shipping"]
+    notes: "Article vector search for Asian shipping disruptions"
+
+  - id: "S002"
+    category: "semantic"
+    question: "Tell me about global supply chain freight rate trends and maritime bottlenecks."
+    ground_truth_answer: "Industry news highlights maritime freight rate surges and route diversions."
+    ground_truth_entities: ["freight", "bottlenecks"]
+    notes: "Article vector search on freight rates"
+
+  - id: "S003"
+    category: "semantic"
+    question: "Are there any active logistics delays affecting European container terminals?"
+    ground_truth_answer: "News coverage details rail freight bottlenecks and terminal congestion across European container hubs."
+    ground_truth_entities: ["European", "terminals"]
+    notes: "Article search on European logistics delays"
+
+  - id: "S004"
+    category: "semantic"
+    question: "What news reports discuss semiconductor component shortages?"
+    ground_truth_answer: "Reports describe semiconductor supply chain lead times and foundry capacity constraints."
+    ground_truth_entities: ["semiconductor", "shortages"]
+    notes: "Article search on semiconductor supply chain"
+
+  - id: "S005"
+    category: "semantic"
+    question: "How are weather events impacting ocean freight schedules?"
+    ground_truth_answer: "Severe weather and typhoons cause vessel delays and terminal closures."
+    ground_truth_entities: ["weather", "freight"]
+    notes: "Article search on weather disruptions"
+
+  - id: "S006"
+    category: "semantic"
+    question: "Summarize recent reports on port labor strikes and collective bargaining."
+    ground_truth_answer: "Labor negotiations and dockworker strikes have led to temporary work stoppages."
+    ground_truth_entities: ["strike", "labor"]
+    notes: "Article search on labor strikes"
+
+  # --- CATEGORY: UNANSWERABLE (4 Questions) ---
+  - id: "U001"
+    category: "unanswerable"
+    question: "What is the CEO's annual salary and bonus package?"
+    ground_truth_answer: "Out of scope. Refused."
+    ground_truth_entities: []
+    notes: "Out-of-scope personal executive compensation"
+
+  - id: "U002"
+    category: "unanswerable"
+    question: "What is the current stock price and market cap of Apple?"
+    ground_truth_answer: "Out of scope. Refused."
+    ground_truth_entities: []
+    notes: "Out-of-scope public equity financial market data"
+
+  - id: "U003"
+    category: "unanswerable"
+    question: "What is a delicious recipe for dinner tonight?"
+    ground_truth_answer: "Out of scope. Refused."
+    ground_truth_entities: []
+    notes: "Out-of-scope cooking / culinary advice"
+
+  - id: "U004"
+    category: "unanswerable"
+    question: "Who won the football game yesterday?"
+    ground_truth_answer: "Out of scope. Refused."
+    ground_truth_entities: []
+    notes: "Out-of-scope sports scores"

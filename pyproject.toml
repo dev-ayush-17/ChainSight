@@ -60,6 +60,8 @@ ignore = ["B008"]
 "extraction/prompts.py" = ["E501"]
 "retrieval/prompts.py" = ["E501"]
 "generation/prompts.py" = ["E501"]
+"eval/prompts.py" = ["E501"]
+"eval/run_eval.py" = ["E501"]
 "ui/app.py" = ["E501"]
 "ui/graph_renderer.py" = ["E501"]
 

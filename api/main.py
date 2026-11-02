@@ -159,7 +159,9 @@ def chat_copilot(
 
         elif intent.intent == "semantic":
             try:
-                vector_res = search_articles_vector(driver, question, top_k=5)
+                from embedding.embed import embed_query
+
+                vector_res = search_articles_vector(driver, embed_query(question), top_k=5)
             except Exception:
                 vector_res = search_articles_fallback_text(
                     driver, intent.disruption_keywords or ["disruption", "shipping"], top_k=5
