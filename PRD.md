@@ -1,7 +1,7 @@
 # ChainSight — Product Requirements Document
 
-> **Version:** 1.0 · **Date:** 2026-10-24 · **Author:** (your name)  
-> **Status:** Draft — awaiting builder sign-off on open decisions (§17)
+> **Version:** 2.0 · **Date:** 2026-11-02 · **Author:** Ayush & Antigravity  
+> **Status:** Active — Phase 1 MVP Complete (Weeks 1–6); Phase 2 React Migration & Production AI Agent Underway (§19)
 
 ---
 
@@ -1357,5 +1357,121 @@ git clone ... && cp .env.example .env && docker compose up
 
 ---
 
-*End of PRD — ChainSight v1.0*  
-*Next step: review §17 (open decisions), make your calls, then begin W1-01.*
+## 19. Phase 2 Roadmap: Production AI Agent & Modern React Migration
+
+### 19.1 Motivation & Vision
+
+While Phase 1 (Weeks 1–6) proved the technical validity of Graph RAG over vector-only retrieval (+20pp accuracy) using Streamlit, transforming ChainSight into a **standout, portfolio-grade enterprise system** requires addressing two critical limitations:
+
+1. **AI Synthesis Depth & Stability**:
+   - The current system relies on a basic fallback when `GEMINI_API_KEY` is omitted, returning raw graph property tuples (`[Graph Fact] Port Id: ...`), and a single-shot prompt when Gemini is active.
+   - **Phase 2 Upgrade**: Introduce an **Autonomous Supply Chain Risk Agent** that performs multi-step analytical reasoning: financial exposure calculation, bottleneck criticality scoring, single-source vulnerability flags, and actionable strategic mitigation recommendations (buffer stock, alternate port routing, second-source qualification).
+   - Provide high-fidelity local synthesis (via deterministic rule-based executive structuring or local Ollama LLM) so the demo is stunning even without external API credentials.
+
+2. **Frontend Architecture & UX**:
+   - Streamlit suffers from full-page script re-execution, limited styling flexibility, and constrained interactive graph inspection.
+   - **Phase 2 Upgrade**: Migrate to a modern **React 18/19 SPA** (Vite + TypeScript + Tailwind CSS + Lucide + React Flow / Vis-Network) featuring:
+     - Real-time streaming response generation (Server-Sent Events).
+     - Interactive graph exploration with node physics, clustering, and inspector side-drawers.
+     - Executive KPI cards (Total Exposed Revenue, Vulnerable SKUs, Bottleneck Suppliers).
+     - Scenario Simulator sandbox to simulate "What-If" port closures and facility downtime.
+
+---
+
+### 19.2 Phase 2 Architecture Specification
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                   React 19 SPA (Vite + TS + Tailwind)                  │
+│                                                                        │
+│  ┌───────────────────────┐  ┌───────────────────────────────────────┐  │
+│  │   Executive Chat Pane │  │   Interactive Reasoning Graph Canvas  │  │
+│  │   - Streaming Markdown│  │   - React Flow / Vis-Network Canvas   │  │
+│  │   - Source Citations  │  │   - Node Inspector Drawer             │  │
+│  │   - KPI Summary Cards │  │   - Severity Heatmap & Mini-Map       │  │
+│  └───────────────────────┘  └───────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │             "What-If" Disruption Scenario Simulator              │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────┬───────────────────────────────────┘
+                                     │ REST / SSE Streaming
+                                     ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                         FastAPI Backend (v2)                           │
+│  - /chat/stream (SSE)              - /scenarios/simulate               │
+│  - /graph (filtered subgraphs)     - /metrics/kpis                     │
+└─────────────┬──────────────────────────────────────────┬───────────────┘
+              │                                          │
+              ▼                                          ▼
+┌───────────────────────────────┐          ┌─────────────────────────────┐
+│  Agentic Reasoning Engine     │          │    Neo4j Knowledge Graph    │
+│  - Financial Impact Calculator│          │    - 40 Suppliers           │
+│  - Bottleneck Scorer          │◄────────►│    - 60 Components          │
+│  - Gemini 2.5 / Groq / Local  │          │    - 9 Products             │
+│  - Mitigation Strategy Planner│          │    - 121 Disruption News    │
+└───────────────────────────────┘          └─────────────────────────────┘
+```
+
+---
+
+### 19.3 Milestone Breakdown for Production Readiness
+
+#### Milestone 2.1: Advanced Agentic Risk Copilot & Synthesis Engine
+- [ ] **Quantitative Exposure Aggregator**: Pre-compute and aggregate financial metrics (e.g. Total Revenue at Risk $\sum \text{Product.annual\_revenue}$, Critical Component counts, Sole-Sourced ratios) before passing structured context to the LLM.
+- [ ] **Structured Executive Briefing Prompting**: Update generator prompts to enforce standard 5-part executive briefings:
+  1. *Executive Summary & Risk Level (Critical / High / Medium / Low)*
+  2. *Financial & Revenue Exposure Table*
+  3. *Critical Single-Point-of-Failure (SPOF) Components*
+  4. *Strategic Mitigation & Alternative Sourcing Plan*
+  5. *Ground Truth Graph & News Citations*
+- [ ] **Smart Local Fallback Synthesizer**: Re-engineer `synthesize_answer_deterministic` into a professional rule-based risk report generator that produces identical clean executive markdown even when no external LLM API key is present.
+- [ ] **Streaming API (`/chat/stream`)**: Implement FastAPI Server-Sent Events (SSE) streaming tokens to the frontend for sub-second perceived response latency.
+
+#### Milestone 2.2: Modern React Frontend Initialization (Vite + TypeScript)
+- [ ] Initialize frontend package in `/frontend` with Vite, React 19, TypeScript, and Tailwind CSS.
+- [ ] Configure Tailwind theme with enterprise dark-mode supply chain aesthetic (Deep Navy `#0B132B`, Slate `#1C2541`, Accent Cyan `#48CAE4`, Alert Coral `#E76F51`).
+- [ ] Build reusable UI component library:
+  - `RiskScoreBadge`: Visual indicator for Low / Medium / High / Critical.
+  - `MetricCard`: KPI card with title, dollar value, and delta.
+  - `CitationChip`: Expandable source pill linking to maritime news articles.
+  - `MarkdownRenderer`: Syntax-highlighted, table-supporting chat bubble renderer.
+
+#### Milestone 2.3: Interactive Graph Visualization Canvas (React Flow / Vis-Network)
+- [ ] Replace static HTML iframe with native React graph component (`@xyflow/react` or `@react-sigma` / `vis-network`).
+- [ ] Custom node shapes and color palettes mapped to Neo4j entity types:
+  - 🔵 `Supplier` | 🟢 `Facility` | 🟣 `Component` | 🟡 `Product` | 🟠 `Port` | 🔴 `Event`
+- [ ] Edge routing with labeled relationship semantics (`:SHIPS_VIA`, `:PRODUCES`, `:PART_OF`, `:ALTERNATIVE_FOR`).
+- [ ] Node Inspector Sheet: Clicking any node slides open a detailed telemetry drawer displaying supplier lead times, tier, sole-sourced status, and port throughput.
+- [ ] Graph Controls: Zoom in/out, fit to view, entity filter toggle, and Export to PNG/SVG.
+
+#### Milestone 2.4: "What-If" Disruption Scenario Playground
+- [ ] Scenario Preset Selector:
+  - *Scenario A: Shanghai Port Congestion & 14-Day Vessel Delay*
+  - *Scenario B: Taiwan Semiconductor Fab Earthquake Disruption*
+  - *Scenario C: Red Sea Chokepoint Maritime Rerouting*
+- [ ] Interactive Parameter Sliders: Allow user to toggle port closure duration, supplier outage lead time, and simulate affected revenue in real-time.
+- [ ] Real-time graph diffing: Nodes directly impacted are highlighted in pulsing red; alternative suppliers are highlighted in neon green.
+
+#### Milestone 2.5: Full-Stack Dockerization & Production Cloud Hosting
+- [ ] Update `docker-compose.yml` with multi-stage `frontend.Dockerfile` (Node 20 build -> Nginx Alpine reverse proxy).
+- [ ] Nginx configuration routing `/api/*` to FastAPI backend and `/*` to React SPA build.
+- [ ] One-click cloud deployment blueprint (Render / Railway / Vercel + Neo4j AuraDB Free).
+- [ ] Complete documentation: Architecture diagrams, Swagger OpenAPI reference, and Loom demo video recording guidelines.
+
+---
+
+### 19.4 Resume & Portfolio Impact
+
+Upon completion of Phase 2, ChainSight moves from a course/hackathon prototype to a **Staff-level AI Full-Stack Portfolio project**:
+
+| Dimension | Phase 1 (Streamlit MVP) | Phase 2 (Production React & Agentic Copilot) |
+|---|---|---|
+| **Frontend** | Streamlit Python script | React 19 + TypeScript + Tailwind + React Flow SPA |
+| **UX & Interactivity** | Script re-run on click, iframe graph | 60 FPS Canvas with zoom/pan, streaming tokens, inspector drawer |
+| **AI Intelligence** | Single-shot prompt / raw log fallback | Multi-step Agent with financial exposure calculation & strategic mitigation |
+| **Latency** | 3–5s blocking roundtrip | <300ms time-to-first-token via SSE streaming |
+| **Demo Value** | "I built a Python script with RAG" | "I engineered an enterprise Graph RAG AI platform with real-time graph visualization" |
+
+---
+
+*End of PRD — ChainSight v2.0*
