@@ -22,6 +22,152 @@ from retrieval.context_assembler import AssembledContext
 logger = logging.getLogger(__name__)
 
 
+def _format_executive_briefing(
+    raw_query: str,
+    facts: list[str],
+    citations: list[Citation],
+) -> str:
+    """Format structured graph facts into an executive-level risk briefing."""
+    parsed_records: list[dict[str, str]] = []
+    for f in facts:
+        clean = f.replace("- [Graph Fact] ", "").strip()
+        rec: dict[str, str] = {}
+        for part in clean.split(" | "):
+            if ":" in part:
+                k, v = part.split(":", 1)
+                rec[k.strip().lower()] = v.strip()
+        if rec:
+            parsed_records.append(rec)
+
+    # 1. Check for product impact traversal facts
+    products: dict[str, float] = {}
+    product_critical_cmps: dict[str, set[str]] = {}
+    critical_cmps: set[str] = set()
+    sole_sourced_cmps: set[str] = set()
+    suppliers: set[str] = set()
+    ports: set[str] = set()
+
+    for r in parsed_records:
+        prd = r.get("product name") or r.get("product id")
+        rev_str = r.get("annual revenue usd") or r.get("revenue") or r.get("exposure")
+        cmp_name = r.get("component name") or r.get("component id")
+        sup_name = r.get("supplier name") or r.get("supplier id")
+        port_name = r.get("port name") or r.get("port id")
+
+        if prd:
+            if prd not in products:
+                rev_val = 0.0
+                if rev_str:
+                    try:
+                        clean_rev = rev_str.replace("$", "").replace(",", "").replace("M", "000000")
+                        rev_val = float(clean_rev)
+                    except ValueError:
+                        rev_val = 0.0
+                products[prd] = rev_val
+                product_critical_cmps[prd] = set()
+
+            if cmp_name and (r.get("is critical") == "True" or r.get("is_critical") == "True"):
+                product_critical_cmps[prd].add(cmp_name)
+
+        if cmp_name:
+            if r.get("is critical") == "True" or r.get("is_critical") == "True":
+                critical_cmps.add(cmp_name)
+            if r.get("is sole sourced") == "True" or r.get("is_sole_sourced") == "True":
+                sole_sourced_cmps.add(cmp_name)
+
+        if sup_name:
+            suppliers.add(sup_name)
+        if port_name:
+            ports.add(port_name)
+
+    citation_suffix = ""
+    if citations:
+        citation_refs = ", ".join(f"[{c.source_id}]" for c in citations)
+        citation_suffix = f"\n\n**Corroborating Disruption News:** Sourced via {citation_refs}."
+
+    if products:
+        total_rev = sum(products.values())
+        if ports:
+            disruption_focus = next(iter(ports))
+        elif suppliers:
+            disruption_focus = next(iter(suppliers))
+        else:
+            disruption_focus = "Identified Node"
+
+        rev_formatted = f"${total_rev:,.2f}" if total_rev > 0 else "Substantial Portfolio Exposure"
+        crit_str = (
+            ", ".join(sorted(critical_cmps))
+            if critical_cmps
+            else "No single critical components flagged."
+        )
+        sole_str = (
+            ", ".join(sorted(sole_sourced_cmps))
+            if sole_sourced_cmps
+            else "All components have secondary sourcing registered."
+        )
+        sup_str = ", ".join(sorted(suppliers)) if suppliers else "Direct facility linkages."
+
+        lines = [
+            "### Supply Chain Risk Assessment: Disruption Impact Analysis\n",
+            (
+                f"**Executive Summary:** Disruption at **{disruption_focus}** directly exposes "
+                f"**{len(products)}** downstream product lines with cumulative revenue of "
+                f"**{rev_formatted}** across **{len(suppliers)}** supplier dependencies.\n"
+            ),
+            "#### 📊 Revenue Exposure by Product Family",
+            "| Impacted Product | Annual Revenue | Critical Component Exposure |",
+            "|---|---|---|",
+        ]
+        for prd, rev in sorted(products.items(), key=lambda x: x[1], reverse=True):
+            cmps = ", ".join(sorted(product_critical_cmps.get(prd, []))) or "Standard BOM"
+            lines.append(f"| {prd} | ${rev:,.2f} | {cmps} |")
+
+        lines.extend(
+            [
+                "\n#### ⚠️ Critical Bottlenecks & Exposure Findings",
+                f"- **High-Risk Components:** {crit_str}",
+                f"- **Sole-Sourced Vulnerabilities:** {sole_str}",
+                f"- **Impacted Suppliers:** {sup_str}",
+                "\n#### 🔄 Recommended Strategic Action Items",
+                "1. **Safety Stock Buffer:** Allocate 30-day reserves for critical parts.",
+                "2. **Alternative Port Logistics:** Route freight through alternate ports.",
+                "3. **Vendor Auditing:** Initiate priority status checks with primary suppliers.",
+            ]
+        )
+        return "\n".join(lines) + citation_suffix
+
+    # 2. Check for alternative supplier facts
+    if any("alt supplier" in r or "alternative" in str(r) for r in parsed_records):
+        lines = [
+            "### Supply Chain Risk Assessment: Alternative Sourcing\n",
+            "**Executive Summary:** Qualified alternative suppliers for component shortage:\n",
+            "| Component | Qualified Alternative Supplier | Lead Time | Country |",
+            "|---|---|---|---|",
+        ]
+        for r in parsed_records:
+            cmp_v = r.get("component name") or r.get("component id") or "Component"
+            alt_s = r.get("alt supplier name") or r.get("supplier name") or "Supplier"
+            lt = r.get("lead time days") or r.get("lead time") or "Standard"
+            country = r.get("country") or "Global"
+            lines.append(f"| {cmp_v} | {alt_s} | {lt} | {country} |")
+        lines.extend(
+            [
+                "\n#### 🔄 Recommendation",
+                "Begin preliminary purchase order validation with verified secondary suppliers.",
+            ]
+        )
+        return "\n".join(lines) + citation_suffix
+
+    # 3. Standard fallback with structured markdown bullet presentation
+    bullet_points = "\n".join(facts)
+    return (
+        f"### Supply Chain Risk Assessment\n\n"
+        f"Based on grounded knowledge graph traversal for **'{raw_query}'**, "
+        f"the following entities and risk exposure metrics were identified:\n\n"
+        f"{bullet_points}{citation_suffix}"
+    )
+
+
 def synthesize_answer_deterministic(assembled_context: AssembledContext) -> LLMGenerationResponse:
     """Synthesize grounded analytical response deterministically from structured context."""
     if assembled_context.strategy == "refused":
@@ -56,23 +202,13 @@ def synthesize_answer_deterministic(assembled_context: AssembledContext) -> LLMG
             confidence="none",
         )
 
-    # We have structured graph facts
-    bullet_points = "\n".join(assembled_context.structured_facts)
-    cited_ids = [c.source_id for c in assembled_context.citations]
-    citation_suffix = ""
-    if cited_ids:
-        citation_refs = ", ".join(f"[{cid}]" for cid in cited_ids)
-        citation_suffix = (
-            f"\n\n**Corroborating Disruption News:** Cross-referenced with {citation_refs}."
-        )
-
-    summary = (
-        f"### Supply Chain Risk Assessment\n\n"
-        f"Based on grounded knowledge graph traversal for **'{assembled_context.raw_query}'**, "
-        f"the following entities and risk exposure metrics were identified:\n\n"
-        f"{bullet_points}{citation_suffix}"
+    # Generate executive briefing from structured graph facts
+    summary = _format_executive_briefing(
+        raw_query=assembled_context.raw_query,
+        facts=assembled_context.structured_facts,
+        citations=assembled_context.citations,
     )
-
+    cited_ids = [c.source_id for c in assembled_context.citations]
     strategy = assembled_context.strategy
     confidence = "high" if strategy in ["impact_traversal", "lookup"] else "medium"
     fact_count = len(assembled_context.structured_facts)
