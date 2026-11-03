@@ -101,3 +101,26 @@ def test_graph_endpoint_with_mocked_nodes(client: TestClient, mock_driver: Magic
     assert len(data["nodes"]) == 2
     assert len(data["edges"]) == 1
     assert data["edges"][0]["type"] == "LOCATED_IN"
+
+
+def test_metrics_kpis_endpoint(client: TestClient, mock_driver: MagicMock) -> None:
+    """Test /metrics/kpis endpoint returns formatted KPI metrics."""
+    session = mock_driver.session.return_value
+    mock_result = MagicMock()
+    mock_result.data.side_effect = [
+        [{"total_revenue": 150000000.0}],
+        [{"cnt": 12}],
+        [{"cnt": 8}],
+        [{"label": "Supplier", "cnt": 40}, {"label": "Product", "cnt": 9}],
+        [{"cnt": 3}],
+        [{"avg_rel": 0.85}],
+    ]
+    session.run.return_value = mock_result
+
+    resp = client.get("/metrics/kpis")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "total_revenue_at_risk" in data
+    assert "sole_sourced_components" in data
+    assert "high_risk_suppliers" in data
+    assert "node_counts" in data
