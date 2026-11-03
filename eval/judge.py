@@ -99,7 +99,42 @@ def evaluate_response_deterministic(
     )
 
 
-def evaluate_response_llm(
+def evaluate_response_hf(
+    question: BenchmarkQuestion,
+    response: ChatResponse,
+    api_key: str,
+    model: str,
+) -> JudgmentResult:
+    """Evaluate response against ground truth using Hugging Face LLM-as-judge."""
+    from generation.hf_client import generate_json_response
+
+    formatted_prompt = JUDGE_USER_TEMPLATE.format(
+        question_id=question.id,
+        category=question.category,
+        question=question.question,
+        ground_truth_answer=question.ground_truth_answer,
+        ground_truth_entities=json.dumps(question.ground_truth_entities),
+        strategy=response.retrieval_strategy,
+        confidence=response.confidence,
+        model_answer=response.answer,
+        citations=json.dumps([c.model_dump() for c in response.citations]),
+        subgraph_nodes=json.dumps(response.subgraph_node_ids),
+    )
+
+    data = generate_json_response(
+        system_prompt=JUDGE_SYSTEM_PROMPT,
+        user_message=formatted_prompt,
+        api_key=api_key,
+        model=model,
+        temperature=0.0,
+    )
+    if not data or not isinstance(data, dict):
+        raise ValueError("Empty or invalid judgment from Hugging Face model")
+
+    return JudgmentResult.model_validate(data)
+
+
+def evaluate_response_gemini(
     question: BenchmarkQuestion,
     response: ChatResponse,
     api_key: str,
@@ -143,10 +178,18 @@ def judge_response(
     """Judge a model response using configured LLM with automatic deterministic fallback."""
     cfg = settings or get_settings()
 
+    if cfg.hf_api_key and cfg.hf_api_key.strip():
+        try:
+            return evaluate_response_hf(question, response, cfg.hf_api_key, cfg.hf_model)
+        except Exception as err:
+            logger.warning(
+                "HF judge call failed (%s); trying Gemini or deterministic fallback.", err
+            )
+
     if cfg.gemini_api_key and cfg.gemini_api_key.strip():
         try:
-            return evaluate_response_llm(question, response, cfg.gemini_api_key)
+            return evaluate_response_gemini(question, response, cfg.gemini_api_key)
         except Exception as err:
-            logger.warning("LLM judge call failed (%s); using deterministic evaluation.", err)
+            logger.warning("Gemini judge call failed (%s); using deterministic evaluation.", err)
 
     return evaluate_response_deterministic(question, response)

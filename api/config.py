@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: str = "password123"
 
+    # LLM Providers — HuggingFace is primary free option; Gemini/Groq are optional
+    hf_api_key: str = ""
+    hf_model: str = "mistralai/Mistral-7B-Instruct-v0.3"
     gemini_api_key: str = ""
     groq_api_key: str = ""
     newsapi_key: str = ""

@@ -62,8 +62,8 @@ ignore = ["B008"]
 "generation/prompts.py" = ["E501"]
 "eval/prompts.py" = ["E501"]
 "eval/run_eval.py" = ["E501"]
-"ui/app.py" = ["E501"]
-"ui/graph_renderer.py" = ["E501"]
+"ui/*" = ["E501"]
+"ui/pages/*" = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"

@@ -78,79 +78,112 @@ def extract_fallback_rule_based(chunk: ArticleChunk) -> ExtractionPayload:
         ("OLED Panel", "Component"),
         ("display panel", "Component"),
         ("camera sensor", "Component"),
-        ("lithium battery", "Component"),
-        ("aluminum chassis", "Component"),
-        ("titanium frame", "Component"),
-        ("semiconductor", "Component"),
-        ("silicon wafer", "Component"),
-        ("resistor", "Component"),
-        ("capacitor", "Component"),
+        ("lithium-ion battery cell", "Component"),
+        ("battery cell", "Component"),
+        ("multilayer PCB", "Component"),
+        ("printed circuit board", "Component"),
+        ("PCB", "Component"),
     ]
 
-    supplier_patterns = [
-        ("TSMC", "Supplier"),
-        ("United Microelectronics", "Supplier"),
-        ("ASE Technology", "Supplier"),
-        ("Samsung", "Supplier"),
-        ("Foxconn", "Supplier"),
-    ]
-
-    found_names: set[str] = set()
-
-    for pattern, label in port_patterns + country_patterns + component_patterns + supplier_patterns:
-        if (
-            re.search(r"\b" + re.escape(pattern) + r"\b", text, re.IGNORECASE)
-            and pattern not in found_names
-        ):
-            entities.append(ExtractedEntity(label=label, name=pattern, properties={}))
-            found_names.add(pattern)
+    found_entities: dict[str, str] = {}
+    for name, label in port_patterns + country_patterns + component_patterns:
+        if re.search(rf"\b{re.escape(name)}\b", text, re.IGNORECASE):
+            found_entities[name] = label
+            entities.append(ExtractedEntity(label=label, name=name, properties={}))
 
     event_type: Literal["strike", "storm", "congestion", "embargo", "shortage", "other"] = "other"
     severity: Literal["low", "medium", "high", "critical"] = "medium"
 
-    if re.search(r"\b(strike|walkout|picket|labor dispute)\b", text, re.IGNORECASE):
+    lower_text = text.lower()
+    if "strike" in lower_text or "labor action" in lower_text:
         event_type = "strike"
         severity = "high"
-    elif re.search(r"\b(typhoon|storm|flood|earthquake|blizzard)\b", text, re.IGNORECASE):
+    elif "typhoon" in lower_text or "hurricane" in lower_text or "storm" in lower_text:
         event_type = "storm"
-        severity = "critical"
-    elif re.search(r"\b(congestion|backlog|delay|queues|bottleneck)\b", text, re.IGNORECASE):
+        severity = "high"
+    elif "congestion" in lower_text or "bottleneck" in lower_text or "delay" in lower_text:
         event_type = "congestion"
         severity = "medium"
-    elif re.search(r"\b(shortage|allocation|deficit|yield loss)\b", text, re.IGNORECASE):
+    elif "shortage" in lower_text:
         event_type = "shortage"
-        severity = "high"
-    elif re.search(r"\b(embargo|export control|sanction|restriction)\b", text, re.IGNORECASE):
-        event_type = "embargo"
-        severity = "high"
+        severity = "critical"
+    elif "earthquake" in lower_text:
+        event_type = "earthquake"
+        severity = "critical"
 
-    event_desc = f"{event_type.capitalize()} disruption: {chunk.title}"
-    event = DisruptionEvent(
-        id=f"evt_{chunk.id[:12]}",
-        event_type=event_type,
-        description=event_desc,
+    event_id = f"evt_{abs(hash(chunk.id)) % 100000:05d}"
+    matched_event = DisruptionEvent(
+        id=event_id,
+        event_type=event_type if event_type != "earthquake" else "other",
+        description=chunk.title,
         start_date=chunk.published_date,
         severity=severity,
     )
-    events.append(event)
+    events.append(matched_event)
 
-    for ent in entities:
-        if ent.label in ["Port", "Supplier", "Country"]:
-            relationships.append(
-                ExtractedRelationship(
-                    type="AFFECTS",
-                    from_name=event_desc,
-                    from_label="Event",
-                    to_name=ent.name,
-                    to_label=ent.label,
-                    confidence=0.9,
-                )
+    entities.append(
+        ExtractedEntity(
+            label="Event",
+            name=chunk.title,
+            properties={"type": event_type, "severity": severity},
+        )
+    )
+
+    for ent_name, ent_label in found_entities.items():
+        relationships.append(
+            ExtractedRelationship(
+                type="AFFECTS",
+                from_name=chunk.title,
+                from_label="Event",
+                to_name=ent_name,
+                to_label=ent_label,
+                properties={"confidence": 0.85},
             )
+        )
+        relationships.append(
+            ExtractedRelationship(
+                type="MENTIONS",
+                from_name=chunk.id,
+                from_label="Article",
+                to_name=ent_name,
+                to_label=ent_label,
+                properties={"confidence": 0.90},
+            )
+        )
 
     return ExtractionPayload(entities=entities, relationships=relationships, events=events)
 
 
-def extract_from_chunk_llm(
+def extract_from_chunk_hf(
+    chunk: ArticleChunk,
+    api_key: str,
+    model: str,
+) -> ExtractionPayload:
+    """Execute LLM structured extraction using Hugging Face Inference API."""
+    from generation.hf_client import generate_json_response
+
+    formatted_user_prompt = EXTRACTION_USER_PROMPT_TEMPLATE.format(
+        title=chunk.title,
+        source=chunk.source,
+        published_date=chunk.published_date,
+        text=chunk.text,
+    )
+    full_prompt = f"{EXTRACTION_FEW_SHOT_EXAMPLES}\n\n{formatted_user_prompt}"
+
+    payload_data = generate_json_response(
+        system_prompt=EXTRACTION_SYSTEM_PROMPT,
+        user_message=full_prompt,
+        api_key=api_key,
+        model=model,
+        temperature=0.0,
+    )
+    if not payload_data or not isinstance(payload_data, dict):
+        raise ValueError("Empty or non-dict response from Hugging Face for extraction")
+
+    return ExtractionPayload.model_validate(payload_data)
+
+
+def extract_from_chunk_gemini(
     chunk: ArticleChunk,
     api_key: str,
     model_name: str = "gemini-2.5-flash",
@@ -189,26 +222,39 @@ def extract_from_chunk(
     """Run extraction pipeline on article chunk with LLM and automatic fallback handling."""
     cfg = settings or get_settings()
 
-    if not cfg.gemini_api_key or cfg.gemini_api_key.strip() == "":
-        return extract_fallback_rule_based(chunk)
-
-    for attempt in range(max_retries + 1):
-        try:
-            return extract_from_chunk_llm(chunk, cfg.gemini_api_key)
-        except Exception as err:
-            logger.warning(
-                "LLM extraction failed on chunk %s (attempt %d/%d): %s",
-                chunk.id,
-                attempt + 1,
-                max_retries + 1,
-                err,
-            )
-            if attempt == max_retries:
-                logger.info(
-                    "Falling back to deterministic rule-based extractor for chunk %s", chunk.id
+    # 1. Try Hugging Face if configured
+    if cfg.hf_api_key and cfg.hf_api_key.strip():
+        for attempt in range(max_retries + 1):
+            try:
+                return extract_from_chunk_hf(chunk, cfg.hf_api_key, cfg.hf_model)
+            except Exception as err:
+                logger.warning(
+                    "HF extraction failed on chunk %s (attempt %d/%d): %s",
+                    chunk.id,
+                    attempt + 1,
+                    max_retries + 1,
+                    err,
                 )
-                return extract_fallback_rule_based(chunk)
+                if attempt == max_retries:
+                    break
 
+    # 2. Try Gemini if configured
+    if cfg.gemini_api_key and cfg.gemini_api_key.strip():
+        for attempt in range(max_retries + 1):
+            try:
+                return extract_from_chunk_gemini(chunk, cfg.gemini_api_key)
+            except Exception as err:
+                logger.warning(
+                    "Gemini extraction failed on chunk %s (attempt %d/%d): %s",
+                    chunk.id,
+                    attempt + 1,
+                    max_retries + 1,
+                    err,
+                )
+                if attempt == max_retries:
+                    break
+
+    # 3. Deterministic fallback
     return extract_fallback_rule_based(chunk)
 
 

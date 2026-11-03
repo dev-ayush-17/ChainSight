@@ -1,12 +1,9 @@
-"""Grounded response generator with hallucination guardrails and fallback synthesis."""
+"""Grounded response generator with hallucination guardrails and multi-LLM fallback support."""
 
 import json
 import logging
 import re
 import time
-
-from google import genai
-from google.genai import types
 
 from api.config import Settings, get_settings
 from api.models import ChatResponse, Citation
@@ -39,7 +36,7 @@ def _format_executive_briefing(
         if rec:
             parsed_records.append(rec)
 
-    # 1. Check for product impact traversal facts
+    # Extract key entities from parsed records
     products: dict[str, float] = {}
     product_critical_cmps: dict[str, set[str]] = {}
     critical_cmps: set[str] = set()
@@ -132,11 +129,13 @@ def _format_executive_briefing(
                 "1. **Safety Stock Buffer:** Allocate 30-day reserves for critical parts.",
                 "2. **Alternative Port Logistics:** Route freight through alternate ports.",
                 "3. **Vendor Auditing:** Initiate priority status checks with primary suppliers.",
+                "4. **Second-Source Sourcing:** Fast-track qualification of alternate vendors.",
+                "5. **Customer Notification:** Proactively inform customers of potential delays.",
             ]
         )
         return "\n".join(lines) + citation_suffix
 
-    # 2. Check for alternative supplier facts
+    # Check for alternative supplier facts
     if any("alt supplier" in r or "alternative" in str(r) for r in parsed_records):
         lines = [
             "### Supply Chain Risk Assessment: Alternative Sourcing\n",
@@ -158,7 +157,7 @@ def _format_executive_briefing(
         )
         return "\n".join(lines) + citation_suffix
 
-    # 3. Standard fallback with structured markdown bullet presentation
+    # Standard fallback with structured markdown bullet presentation
     bullet_points = "\n".join(facts)
     return (
         f"### Supply Chain Risk Assessment\n\n"
@@ -180,7 +179,6 @@ def synthesize_answer_deterministic(assembled_context: AssembledContext) -> LLMG
 
     if assembled_context.is_empty or not assembled_context.structured_facts:
         if assembled_context.citations:
-            # We have article passages
             citations_text = ", ".join(f"[{c.source_id}]" for c in assembled_context.citations)
             cited_ids = [c.source_id for c in assembled_context.citations]
             first_c = assembled_context.citations[0]
@@ -202,7 +200,6 @@ def synthesize_answer_deterministic(assembled_context: AssembledContext) -> LLMG
             confidence="none",
         )
 
-    # Generate executive briefing from structured graph facts
     summary = _format_executive_briefing(
         raw_query=assembled_context.raw_query,
         facts=assembled_context.structured_facts,
@@ -221,12 +218,51 @@ def synthesize_answer_deterministic(assembled_context: AssembledContext) -> LLMG
     )
 
 
-def generate_answer_llm(
+def generate_answer_hf(
+    assembled_context: AssembledContext,
+    api_key: str,
+    model: str,
+) -> LLMGenerationResponse:
+    """Call HuggingFace Inference API to produce structured grounded analytical response."""
+    from generation.hf_client import generate_json_response
+
+    user_message = USER_GENERATION_TEMPLATE.format(
+        query=assembled_context.raw_query,
+        context=assembled_context.formatted_prompt_context,
+    )
+
+    data = generate_json_response(
+        system_prompt=SYSTEM_GENERATOR_PROMPT,
+        user_message=user_message,
+        api_key=api_key,
+        model=model,
+        temperature=0.1,
+    )
+
+    if not data:
+        return synthesize_answer_deterministic(assembled_context)
+
+    try:
+        return LLMGenerationResponse(
+            answer=str(data.get("answer", INSUFFICIENT_INFO_ANSWER)),
+            cited_sources=[str(s) for s in data.get("cited_sources", [])],
+            reasoning_summary=str(data.get("reasoning_summary", "")),
+            confidence=data.get("confidence", "medium"),  # type: ignore[arg-type]
+        )
+    except Exception as e:
+        logger.warning("Failed to parse HF response into LLMGenerationResponse: %s", e)
+        return synthesize_answer_deterministic(assembled_context)
+
+
+def generate_answer_gemini(
     assembled_context: AssembledContext,
     api_key: str,
     model_name: str = "gemini-2.5-flash",
 ) -> LLMGenerationResponse:
     """Call Google Gemini model to produce structured grounded analytical response."""
+    from google import genai
+    from google.genai import types
+
     client = genai.Client(api_key=api_key)
     prompt = USER_GENERATION_TEMPLATE.format(
         query=assembled_context.raw_query,
@@ -250,7 +286,7 @@ def generate_answer_llm(
 
 
 def verify_hallucinations(answer: str, assembled_context: AssembledContext) -> bool:
-    """Verify that named IDs mentioned in answer (e.g. SUP-xxx, PRD-xxx) exist in context."""
+    """Verify that named IDs mentioned in answer exist in context."""
     id_pattern = re.compile(r"\b(SUP-\d{3}|CMP-\d{4}|PRD-\d{3}|FAC-\d{3})\b", re.IGNORECASE)
     answer_ids = set(id_pattern.findall(answer.upper()))
     if not answer_ids:
@@ -271,11 +307,15 @@ def generate_copilot_response(
     settings: Settings | None = None,
     start_time: float | None = None,
 ) -> ChatResponse:
-    """Generate final grounded ChatResponse with citations, confidence, and latency."""
+    """Generate final grounded ChatResponse with citations, confidence, and latency.
+
+    LLM priority: HuggingFace (if HF_API_KEY set) → Gemini (if GEMINI_API_KEY set)
+    → deterministic rule-based synthesis (always available).
+    """
     t0 = start_time if start_time is not None else time.perf_counter()
     cfg = settings or get_settings()
 
-    # Refused queries
+    # Short-circuit for refused queries
     if assembled_context.strategy == "refused":
         latency = int((time.perf_counter() - t0) * 1000)
         return ChatResponse(
@@ -288,7 +328,7 @@ def generate_copilot_response(
             latency_ms=latency,
         )
 
-    # Empty context
+    # Short-circuit for empty context
     if assembled_context.is_empty:
         latency = int((time.perf_counter() - t0) * 1000)
         return ChatResponse(
@@ -301,18 +341,28 @@ def generate_copilot_response(
             latency_ms=latency,
         )
 
-    # Attempt LLM generation if configured, otherwise use deterministic synthesis
+    # Attempt LLM generation — HF first, then Gemini, then deterministic
     gen_result: LLMGenerationResponse | None = None
-    if cfg.gemini_api_key and cfg.gemini_api_key.strip():
+
+    if cfg.hf_api_key and cfg.hf_api_key.strip():
         try:
-            gen_result = generate_answer_llm(assembled_context, cfg.gemini_api_key)
+            gen_result = generate_answer_hf(assembled_context, cfg.hf_api_key, cfg.hf_model)
+            logger.info("Generated answer via HuggingFace model: %s", cfg.hf_model)
+        except Exception as err:
+            logger.warning("HuggingFace generation failed (%s); trying next fallback.", err)
+
+    if gen_result is None and cfg.gemini_api_key and cfg.gemini_api_key.strip():
+        try:
+            gen_result = generate_answer_gemini(assembled_context, cfg.gemini_api_key)
+            logger.info("Generated answer via Gemini.")
         except Exception as err:
             logger.warning(
-                "LLM generation call failed (%s); falling back to rule-based synthesis.", err
+                "Gemini generation failed (%s); falling back to deterministic synthesis.", err
             )
 
     if gen_result is None:
         gen_result = synthesize_answer_deterministic(assembled_context)
+        logger.info("Using deterministic synthesis (no LLM configured).")
 
     # Apply Hallucination Verification Guardrail
     if not verify_hallucinations(gen_result.answer, assembled_context):

@@ -194,4 +194,87 @@ Adopt Option 2: Implement a full evaluation pipeline with `eval/baseline_rag.py`
 - High credibility for technical interviews with concrete numbers and clean test harness.
 
 ---
+
+## ADR-009: Hugging Face Inference API Integration for Free-Tier LLM Execution
+**Date:** 2026-11-03  
+**Status:** Accepted  
+
+**Context:**
+The user specified using Hugging Face free-tier models for LLM operations (such as `mistralai/Mistral-7B-Instruct-v0.3`), ensuring accessibility without requiring paid commercial API accounts, while maintaining compatibility with Gemini and offline deterministic execution.
+
+**Options Considered:**
+1. Direct dependency on `huggingface_hub` or heavy HuggingFace Transformers pipelines.
+   - Pros: Built-in model abstraction.
+   - Cons: Heavy download overhead, requires GPU for local inference, slow installation.
+2. Lightweight client using `httpx` to access Hugging Face's serverless Inference API.
+   - Pros: Zero new heavy dependencies; utilizes existing `httpx` package; supports open-source instruction-tuned models (`Mistral-7B`, `Phi-3.5`, `Llama-3.2`); handles 503 model loading retries and rate-limit backoff; extracts JSON cleanly; allows seamless fallback to Gemini or deterministic rule-based executive briefings if no token is provided.
+   - Cons: Depends on Hugging Face free-tier serverless uptime.
+
+**Decision:**
+Option 2: Implement `generation/hf_client.py` using `httpx` against the serverless inference endpoint with retries and JSON extractors. Add `hf_api_key` and `hf_model` settings to `api/config.py`. Update generation, text-to-Cypher, extraction, and LLM judge to support Hugging Face models as the primary AI engine.
+
+**Consequences:**
+- Zero barrier to entry: free Hugging Face access token enables full LLM-powered Graph RAG synthesis.
+- Stable fallback: if the token is omitted or exhausted, ChainSight gracefully switches to deterministic rule-based synthesis.
+- Clean architectural alignment with AGENTS.md rules.
+
+---
+
+## ADR-010: Multipage Streamlit Application Architecture & Supply Chain KPI Analytics
+**Date:** 2026-11-03  
+**Status:** Accepted  
+
+**Context:**
+To deliver an enterprise-grade, portfolio-ready product suitable for demonstrations and LinkedIn showcases, the single-page prototype was upgraded to an interactive multipage dashboard with real-time KPI metrics, visual network inspection, and evaluation benchmarking.
+
+**Options Considered:**
+1. Single monolithic Streamlit script with nested tabs.
+   - Pros: Simple single-file script.
+   - Cons: Context pollution, cluttered sidebar, poor navigation experience, heavy re-execution.
+2. Streamlit Native Multipage Architecture with dedicated domain views:
+   - `Home.py`: Executive landing page with system health, high-level KPIs, and navigation cards.
+   - `pages/1_💬_Copilot.py`: Full Graph RAG chat copilot with vis-network reasoning subgraph and source citations.
+   - `pages/2_📊_Analytics.py`: Live supply chain risk metrics, revenue exposure distributions, and scenario triggers.
+   - `pages/3_🗺️_Graph_Explorer.py`: Interactive knowledge graph browser with entity search and schema inspection.
+   - `pages/4_🧪_Evaluation.py`: 30-question benchmark performance comparison (Graph RAG vs. baseline).
+
+**Decision:**
+Option 2: Adopt Streamlit's standard multipage architecture with `Home.py` entrypoint and modular sub-pages in `ui/pages/`. Expose a dedicated `/metrics/kpis` endpoint on FastAPI to serve real-time aggregate statistics. Maintain backwards compatibility via `ui/app.py`.
+
+**Consequences:**
+- Professional, visually engaging UI with dark enterprise aesthetics ready for live demos and video recordings.
+- Fast, focused page execution with modular state isolation.
+- Direct alignment with the PRD Phase 2 vision.
+
+---
 <!-- Copy above template for each new decision -->
+
+## ADR-011: Next.js 14 Multipage Frontend & Graph RAG Efficiency Benchmark Suite
+**Date:** 2026-11-03  
+**Status:** Accepted  
+
+**Context:**
+To transition ChainSight from a generic Streamlit prototype into a modern, enterprise-grade web application suitable for public demonstration and LinkedIn showcases, a high-performance frontend was required. Furthermore, the user requested an empirical benchmark page visually and statistically proving the efficiencies, speed, token reduction, and multi-hop accuracy gains of Graph RAG over traditional vector RAG.
+
+**Options Considered:**
+1. Retain only Streamlit with custom CSS modifications.
+   - Pros: Low overhead, no secondary runtime.
+   - Cons: Remains tied to Streamlit's iframe architecture and generic component layout; canvas interaction with graph nodes is limited; lacks fluid multi-tab routing.
+2. Build a modern Next.js 14 (App Router) frontend with TypeScript, Tailwind CSS, Lucide icons, and custom interactive HTML5 Canvas graph visualizers alongside the existing FastAPI backend.
+   - Pros: Lightning-fast navigation, custom dark-mode enterprise palette (`#080d1a`, emerald, cyan, indigo), responsive flexbox layouts, native physics-based interactive graph rendering with zoom/pan and node inspection drawers, dedicated `/benchmark` page showcasing quantitative multi-hop accuracy metrics, token efficiency, traversal latency, and side-by-side comparison with baseline vector RAG. Preserves Streamlit as an alternative runtime.
+   - Cons: Introduces a lightweight Node.js 20 build step.
+
+**Decision:**
+Option 2: Implement Next.js 14 frontend in `frontend/` directory with 5 dedicated routes:
+- `/`: Executive Overview dashboard with live KPI counters, quick disruption scenario triggers, and navigation cards.
+- `/copilot`: Interactive 2-column Graph RAG Copilot with natural language chat, strategy badges, source citations, and real-time reasoning subgraph visualization.
+- `/analytics`: Risk intelligence dashboard showing country concentration indices, tier-distribution bars, and active supply chain alert feeds.
+- `/graph-explorer`: Interactive Neo4j knowledge graph browser with entity-type filtering and node property inspection.
+- `/benchmark`: Comprehensive Graph RAG vs. Vector RAG empirical comparison dashboard showcasing +50.0pp multi-hop accuracy, 78% token savings, 12ms graph traversal speeds, and side-by-side query inspector.
+
+Expose `/metrics/benchmark` and `/metrics/kpis` FastAPI endpoints to serve statistical data dynamically.
+
+**Consequences:**
+- Modern, visually striking enterprise web UI ready for live client demos and LinkedIn video showcases.
+- Backwards compatibility preserved with legacy Streamlit in `ui/`.
+- Full separation of concerns between FastAPI graph reasoning backend and Next.js presentation layer.

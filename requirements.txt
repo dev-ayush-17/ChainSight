@@ -1,16 +1,36 @@
+# Core Infrastructure
 neo4j>=5.20.0
 pydantic>=2.7.0
 pydantic-settings>=2.2.0
 python-dotenv>=1.0.0
+
+# Data Generation
 faker>=25.0.0
+
+# Web Framework
 fastapi>=0.111.0
 uvicorn>=0.30.0
 httpx>=0.27.0
+
+# News Ingestion
 feedparser>=6.0.11
-google-genai>=1.0.0
+
+# LLM Providers (install at least one)
+google-genai>=1.0.0      # Gemini (optional fallback)
+# huggingface_hub is not needed — we use httpx directly against the HF Inference API
+
+# Tokenization & Embeddings
 tiktoken>=0.7.0
 fastembed>=0.3.0
+
+# UI
 streamlit>=1.35.0
+altair>=5.0.0            # Charts in Analytics dashboard
+
+# Evaluation
+pyyaml>=6.0.0            # questions.yaml parsing
+
+# Development & Quality
 pytest>=8.2.0
 pytest-asyncio>=0.23.0
 ruff>=0.4.0

@@ -117,6 +117,26 @@ def generate_cypher_fallback(query: str) -> str:
     )
 
 
+def generate_cypher_hf(query: str, api_key: str, model: str) -> str:
+    """Generate Cypher query using HuggingFace Inference API."""
+    from generation.hf_client import call_hf_chat_completion
+
+    full_prompt = (
+        f"{TEXT_TO_CYPHER_FEW_SHOTS}\n\n{TEXT_TO_CYPHER_USER_TEMPLATE.format(query=query)}"
+    )
+    raw = call_hf_chat_completion(
+        system_prompt=TEXT_TO_CYPHER_SYSTEM_PROMPT,
+        user_message=full_prompt,
+        api_key=api_key,
+        model=model,
+        temperature=0.0,
+        max_new_tokens=300,
+    )
+    # Strip any markdown code formatting
+    cleaned = re.sub(r"```(cypher)?", "", raw).strip()
+    return cleaned
+
+
 def generate_cypher_llm(
     query: str,
     api_key: str,
@@ -152,13 +172,20 @@ def execute_text_to_cypher(
     cfg = settings or get_settings()
 
     cypher: str = ""
-    if cfg.gemini_api_key and cfg.gemini_api_key.strip():
+    if cfg.hf_api_key and cfg.hf_api_key.strip():
+        try:
+            cypher = generate_cypher_hf(query, cfg.hf_api_key, cfg.hf_model)
+        except Exception as err:
+            logger.warning("HF Cypher generation failed (%s); trying Gemini or fallback", err)
+            cypher = ""
+
+    if not cypher and cfg.gemini_api_key and cfg.gemini_api_key.strip():
         try:
             cypher = generate_cypher_llm(query, cfg.gemini_api_key)
         except Exception as err:
             logger.warning("LLM Cypher generation failed (%s); using fallback pattern mapper", err)
             cypher = generate_cypher_fallback(query)
-    else:
+    elif not cypher:
         cypher = generate_cypher_fallback(query)
 
     is_safe, error_msg = validate_cypher_safety(cypher)
