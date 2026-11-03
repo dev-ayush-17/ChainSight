@@ -12,3 +12,10 @@ __pycache__/
 .git/
 .github/
 *.log
+AGENTS.md
+PRD.md
+DECISIONS.md
+README.md
+frontend/node_modules/
+frontend/.next/
+
